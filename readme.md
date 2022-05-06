@@ -63,3 +63,31 @@ Layout.defaultProps = {
 
 export default Layout;
 ```
+
+### Module Alias
+
+Using Module Aliases, we can simplify folder navigation when importing. We create a jsconfig.json file
+
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/components/*": ["components/*"],
+      "@/styles/*": ["styles/*"]
+    }
+  }
+}
+```
+
+Instead of doing
+
+```javascript
+import Layout from "../../components/Layout";
+```
+
+We can use @ instead
+
+```javascript
+import Layout from "@/components/Layout";
+```
