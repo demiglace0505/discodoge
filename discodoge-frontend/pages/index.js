@@ -1,8 +1,12 @@
 import React from "react";
-import Link from "next/link";
+import Layout from "../components/Layout";
 
 function HomePage() {
-  return <h1>HomePage</h1>;
+  return (
+    <Layout>
+      <h1>HomePage</h1>
+    </Layout>
+  );
 }
 
 export default HomePage;
