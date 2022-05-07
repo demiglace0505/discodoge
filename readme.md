@@ -175,3 +175,68 @@ export async function getStaticProps({ params: { slug } }) {
   };
 }
 ```
+
+## Strapi Backend
+
+To use Cloudinary with Strapi, we need to install @strapi/provider-upload-cloudinary in our Strapi backend repository. We need to create the following plugins.js configuration file under /config. This is so that any image that is uploaded through Strapi will get uploaded as well to Cloudinary.
+
+```javascript
+module.exports = ({ env }) => ({
+  upload: {
+    config: {
+      provider: "cloudinary",
+      providerOptions: {
+        cloud_name: env("CLOUDINARY_NAME"),
+        api_key: env("CLOUDINARY_KEY"),
+        api_secret: env("CLOUDINARY_SECRET"),
+      },
+      actionOptions: {
+        upload: {},
+        delete: {},
+      },
+    },
+  },
+});
+```
+
+And configure strapi security in the middlewares.js file as well.
+
+```javascript
+module.exports = [
+  "strapi::errors",
+  {
+    name: "strapi::security",
+    config: {
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+          "connect-src": ["'self'", "https:"],
+          "img-src": [
+            "'self'",
+            "data:",
+            "blob:",
+            "dl.airtable.com",
+            "res.cloudinary.com",
+          ],
+          "media-src": [
+            "'self'",
+            "data:",
+            "blob:",
+            "dl.airtable.com",
+            "res.cloudinary.com",
+          ],
+          upgradeInsecureRequests: null,
+        },
+      },
+    },
+  },
+  "strapi::cors",
+  "strapi::poweredBy",
+  "strapi::logger",
+  "strapi::query",
+  "strapi::body",
+  "strapi::session",
+  "strapi::favicon",
+  "strapi::public",
+];
+```
