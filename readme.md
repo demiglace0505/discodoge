@@ -91,3 +91,87 @@ We can use @ instead
 ```javascript
 import Layout from "@/components/Layout";
 ```
+
+## Data Fetching
+
+### Api Routes
+
+Any file inside the /pages/api is mapped to /api/\* and will be treated as an API endpoint instead of a page. Using a file [slug].js, we can set up an api endpoint for /events/[slug].
+
+```javascript
+const { events } = require("./data.json");
+
+// return event according to slug
+export default (req, res) => {
+  const evt = events.filter((e) => e.slug === req.query.slug);
+
+  if (req.method === "GET") {
+    res.status(200).json(evt);
+  } else {
+    res.setHeader("Allow", ["GET"]);
+    res.status(405).json({ message: `Method ${req.method} is not allowed` });
+  }
+};
+```
+
+One caveat for api routes is that it cannot be used with `next export`.
+
+### getServerSideProps and getStaticProps
+
+getServerSideProps is for server side rendering will fetch data on each request. This means that everytime we go to a page, it fetches the data from the backend. getStaticProps on the other hand, fetches data at build time. This is used for static site generation.
+
+```javascript
+export async function getServerSideProps() {
+  const res = await fetch(`${API_URL}/api/events`);
+  const events = await res.json();
+
+  console.log(events); // will run serverside
+  return {
+    props: { events },
+  };
+}
+```
+
+```javascript
+export async function getStaticProps() {
+  const res = await fetch(`${API_URL}/api/events`);
+  const events = await res.json();
+
+  console.log(events); // will run serverside
+  return {
+    props: { events },
+    revalidate: 1,
+  };
+}
+```
+
+### getStaticPaths
+
+getStaticPaths is used in combination with getStaticProps to fetch a single event data. When we navigate to a specific event, we get the slug and make a request to our api route to get the details for that single event.
+
+```javascript
+export async function getStaticPaths() {
+  const res = await fetch(`${API_URL}/api/events`);
+  const events = await res.json();
+
+  const paths = events.map((evt) => ({ params: { slug: evt.slug } }));
+
+  return {
+    paths,
+    // fallback: false, // show a 404 if slug isnt found,
+    fallback: true,
+  };
+}
+
+export async function getStaticProps({ params: { slug } }) {
+  const res = await fetch(`${API_URL}/api/events/${slug}`);
+  const events = await res.json();
+
+  return {
+    props: {
+      evt: events[0],
+    },
+    revalidate: 1,
+  };
+}
+```
