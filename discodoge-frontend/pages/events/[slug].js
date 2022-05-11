@@ -32,7 +32,7 @@ function EventPage({ evt }) {
           {attributes.time}
         </span>
         <h1>{attributes.name}</h1>
-        {attributes.image && (
+        {attributes.image.data && (
           <div className={styles.image}>
             <Image
               src={attributes.image.data.attributes.formats.large.url}

@@ -474,3 +474,76 @@ function Search() {
   );
 }
 ```
+
+## Adding Events
+
+For adding events, we make use of a form field together with state hooks. We can create a simple validation by using **some()** method to check if an element has blank values. For notifications, we use react-toastify library
+
+```javascript
+const [values, setValues] = useState({
+  name: "",
+  performers: "",
+  venue: "",
+  address: "",
+  date: "",
+  time: "",
+  description: "",
+});
+const router = useRouter();
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  // Validation
+  const hasEmptyFields = Object.values(values).some((el) => el === "");
+
+  if (hasEmptyFields) {
+    toast.error("Please fill in all fields");
+    return;
+  }
+
+  const res = await fetch(`${API_URL}/api/events`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ data: values }),
+  });
+
+  if (!res.ok) {
+    toast.error("Something went wrong");
+  } else {
+    const json = await res.json();
+    const evt = json.data;
+    router.push(`/events/${evt.attributes.slug}`);
+  }
+};
+
+const handleInputChange = (e) => {
+  const { name, value } = e.target;
+  setValues({ ...values, [name]: value });
+};
+```
+
+We also need to generate a slug whenever we submit a new event from the frontend. We need to create a lifecycle hook on the backend under `src/api/<class-name>/content-types/<class-name>/lifecycles.js`.
+
+```javascript
+const slugify = require("slugify");
+
+module.exports = {
+  beforeCreate(event) {
+    setSlug(event.params.data);
+  },
+  beforeUpdate(event) {
+    setSlug(event.params.data);
+  },
+};
+
+const setSlug = (data) => {
+  if (data.name) {
+    data.slug = slugify(data.name.toLowerCase());
+  }
+};
+```
+
+_A better way for strapi v4 is to use slug natively https://strapi.io/blog/how-to-create-a-slug-system-in-strapi-v4_
