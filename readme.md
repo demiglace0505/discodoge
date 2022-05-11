@@ -397,3 +397,80 @@ export async function getStaticProps({ params: { slug } }) {
   };
 }
 ```
+
+## Implementing Search
+
+To implement search, we use the third party library qs for building query strings. We can create a new events/search.js page that takes in the **term** from the url. qs allows us to make us of **and** and **or** operators.
+
+```javascript
+export async function getServerSideProps({ query: { term } }) {
+  const query = qs.stringify(
+    {
+      filters: {
+        $or: [
+          {
+            name: {
+              $containsi: term,
+            },
+          },
+          {
+            performers: {
+              $containsi: term,
+            },
+          },
+          {
+            description: {
+              $containsi: term,
+            },
+          },
+          {
+            venue: {
+              $containsi: term,
+            },
+          },
+        ],
+      },
+    },
+    {
+      encode: false,
+    }
+  );
+
+  const res = await fetch(`${API_URL}/api/events?${query}&populate=*`);
+  const events = await res.json();
+
+  return {
+    props: { events: events.data },
+  };
+}
+```
+
+If we navigate to `http://localhost:3000/events/search?term=mc%20neat`, we will get a search result page that searches for `mc neat` in the name, performers, description or venue fields.
+
+We can then build out the Search component
+
+```javascript
+function Search() {
+  const [term, setTerm] = useState("");
+  const router = useRouter();
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    router.push(`/events/search?term=${term}`);
+    setTerm("");
+  };
+
+  return (
+    <div className={styles.search}>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          value={term}
+          onChange={(e) => setTerm(e.target.value)}
+          placeholder="Search Events"
+        />
+      </form>
+    </div>
+  );
+}
+```
