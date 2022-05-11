@@ -18,10 +18,11 @@ function EventsPage({ events }) {
 }
 
 export async function getStaticProps() {
-  const res = await fetch(`${API_URL}/api/events`);
-  const events = await res.json();
+  const res = await fetch(`${API_URL}/api/events?populate=*`);
+  const json = await res.json();
+  const events = json.data;
+  // console.log(events); // will run serverside
 
-  console.log(events); // will run serverside
   return {
     props: { events },
     revalidate: 1,

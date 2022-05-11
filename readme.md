@@ -240,3 +240,160 @@ module.exports = [
   "strapi::public",
 ];
 ```
+
+## Connecting to Strapi API
+
+To connect to the strapi api, we configure config/index.js to point to port 1337 instead of 3000
+
+```javascript
+export const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
+```
+
+We then update the logic for fetching data
+
+```javascript
+export async function getStaticProps() {
+  const res = await fetch(
+    `${API_URL}/api/events?populate=*&_sort=date:ASC&_limit=3`
+  );
+  const json = await res.json();
+  const events = json.data;
+  // console.log("events fetched", events.data); // will run serverside
+
+  return {
+    props: { events },
+    revalidate: 1,
+  };
+}
+```
+
+To import images from an outside source using next <Image> component, we need to also configure next.config.js in our frontend root.
+
+```javascript
+module.exports = {
+  images: {
+    domains: ["res.cloudinary.com"],
+  },
+};
+```
+
+We can then import the images. For an EventItem, we can use the thumbnail.
+
+```javascript
+function EventItem({ evt }) {
+  const { attributes } = evt;
+  return (
+    <div className={styles.event}>
+      <div className={styles.img}>
+        <Image
+          src={
+            attributes.image
+              ? attributes.image.data.attributes.formats.thumbnail.url
+              : "/images/event-default.png"
+          }
+          width={170}
+          height={100}
+        />
+      </div>
+      <div className={styles.info}>
+        <span>
+          {attributes.date} at {attributes.time}
+        </span>
+        <h3>{attributes.name}</h3>
+      </div>
+      <div className={styles.link}>
+        <Link href={`/events/${attributes.slug}`}>
+          <a className="btn">Details</a>
+        </Link>
+      </div>
+    </div>
+  );
+}
+```
+
+Likewise, we can do the same for the event details in events/[slug].js
+
+```javascript
+function EventPage({ evt }) {
+  const { attributes } = evt;
+  const deleteEvent = (e) => {
+    console.log("delete");
+  };
+
+  return (
+    <Layout>
+      <div className={styles.event}>
+        <div className={styles.controls}>
+          <Link href={`/events/edit/${attributes.id}`}>
+            <a>
+              <FaPencilAlt /> Edit Event
+            </a>
+          </Link>
+          <a href="#" className={styles.delete} onClick={deleteEvent}>
+            <FaTimes /> Delete Event
+          </a>
+        </div>
+
+        <span>
+          {attributes.date} at {attributes.time}
+        </span>
+        <h1>{attributes.name}</h1>
+        {attributes.image && (
+          <div className={styles.image}>
+            <Image
+              src={attributes.image.data.attributes.formats.large.url}
+              width={960}
+              height={600}
+            />
+          </div>
+        )}
+
+        <h3>Performers:</h3>
+        <p>{attributes.performers}</p>
+
+        <h3>Description:</h3>
+        <p>{attributes.description}</p>
+
+        <h3>Venue: {attributes.venue}</h3>
+        <p>{attributes.address}</p>
+
+        <Link href="/events">
+          <a className={styles.back}>{"<"} Go Back</a>
+        </Link>
+      </div>
+    </Layout>
+  );
+}
+
+export async function getStaticPaths() {
+  const res = await fetch(`${API_URL}/api/events?populate=*`);
+  const json = await res.json();
+  const events = json.data;
+
+  const paths = events.map((evt) => ({
+    params: { slug: evt.attributes.slug },
+  }));
+
+  return {
+    paths,
+    // fallback: false, // show a 404 if slug isnt found,
+    fallback: true,
+  };
+}
+
+export async function getStaticProps({ params: { slug } }) {
+  const res = await fetch(
+    `${API_URL}/api/events?filters[slug][$eq]=${slug}&populate=*`
+  );
+  const json = await res.json();
+  const events = json.data;
+
+  return {
+    props: {
+      evt: events[0],
+    },
+    revalidate: 1,
+  };
+}
+```
