@@ -547,3 +547,106 @@ const setSlug = (data) => {
 ```
 
 _A better way for strapi v4 is to use slug natively https://strapi.io/blog/how-to-create-a-slug-system-in-strapi-v4_
+
+## Deleting Event
+
+```javascript
+const deleteEvent = async (e) => {
+  if (confirm("Are you sure?")) {
+    const res = await fetch(`${API_URL}/api/events/${evt.id}`, {
+      method: "DELETE",
+    });
+    const data = res.json();
+
+    if (!res.ok) {
+      toast.error(data.message);
+    } else {
+      router.push("/events");
+    }
+  }
+};
+```
+
+## Editing Events
+
+For editing an event, we first need to load the event data using getServerSideProps
+
+```javascript
+export async function getServerSideProps({ params: { id } }) {
+  const res = await fetch(`${API_URL}/api/events/${id}`);
+  const json = await res.json();
+  const evt = json.data;
+
+  return {
+    props: {
+      evt,
+    },
+  };
+}
+```
+
+Using moment library, we can populate the date field properly.
+
+```javascript
+<div>
+  <label htmlFor="date">Date</label>
+  <input
+    type="date"
+    name="date"
+    id="date"
+    value={moment(values.date).format("yyyy-MM-DD")}
+    onChange={handleInputChange}
+  />
+</div>
+```
+
+```javascript
+function EditEventPage({ evt }) {
+  const attributes = evt.attributes;
+  const [values, setValues] = useState({
+    name: attributes.name,
+    performers: attributes.performers,
+    venue: attributes.venue,
+    address: attributes.address,
+    date: attributes.date,
+    time: attributes.time,
+    description: attributes.description,
+  });
+  const router = useRouter();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validation
+    const hasEmptyFields = Object.values(values).some((el) => el === "");
+
+    if (hasEmptyFields) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    const res = await fetch(`${API_URL}/api/events/${evt.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ data: values }),
+    });
+
+    if (!res.ok) {
+      toast.error("Something went wrong");
+    } else {
+      const json = await res.json();
+      const evt = json.data;
+      router.push(`/events/${evt.attributes.slug}`);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setValues({ ...values, [name]: value });
+  };
+
+  return ()
+}
+```
