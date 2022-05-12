@@ -573,7 +573,7 @@ For editing an event, we first need to load the event data using getServerSidePr
 
 ```javascript
 export async function getServerSideProps({ params: { id } }) {
-  const res = await fetch(`${API_URL}/api/events/${id}`);
+  const res = await fetch(`${API_URL}/api/events/${id}?populate=*`);
   const json = await res.json();
   const evt = json.data;
 
@@ -649,4 +649,191 @@ function EditEventPage({ evt }) {
 
   return ()
 }
+```
+
+## Image Preview and Modal
+
+We can implement a thumbnail preview using useState hooks
+
+```javascript
+const [imagePreview, setImagePreview] = useState(
+  attributes.image
+    ? attributes.image.data.attributes.formats.thumbnail.url
+    : null
+);
+
+<h2>Event Image</h2>;
+{
+  imagePreview ? (
+    <Image src={imagePreview} height={100} width={170} />
+  ) : (
+    <div>
+      <p>No image uploaded</p>
+    </div>
+  );
+}
+```
+
+For the Modal component, we will be basing on the [writeup by Alexander Rusev](https://devrecipes.net/modal-component-with-next-js/). The modal component is server side rendered. When the component first renders, we don't have access to the document object yet. The workaround is to use an effect and state hook to initialize the modal. In next.js, we don't have an access to an index.html in the `public` directory, hence we need to use a custom [Document object](https://nextjs.org/docs/advanced-features/custom-document), `pages/_document.js`.
+
+Here we add the div with an id `modal-root`
+
+```javascript
+  render() {
+    return (
+      <Html>
+        <Head />
+        <body>
+          <Main />
+          <NextScript />
+          <div id="modal-root"></div>
+        </body>
+      </Html>
+    );
+  }
+```
+
+Afterwards we create the modal component
+
+```javascript
+function Modal({ show, onClose, children, title }) {
+  const [isBrowser, setIsBrowser] = useState(false);
+  useEffect(() => setIsBrowser(true));
+
+  const handleClose = (e) => {
+    e.preventDefault();
+    onClose();
+  };
+
+  const modalContent = show ? (
+    <div className={styles.overlay}>
+      <div className={styles.modal}>
+        <div className={styles.header}>
+          <a href="#" onClick={handleClose}>
+            <FaTimes />
+          </a>
+        </div>
+        {title && <div>{title}</div>}
+        <div className={styles.body}>{children}</div>
+      </div>
+    </div>
+  ) : null;
+
+  if (isBrowser) {
+    return reactDom.createPortal(
+      modalContent,
+      document.getElementById("modal-root")
+    );
+  } else {
+    return null;
+  }
+}
+```
+
+**another solution without using portal, using css overflow**
+
+```javascript
+function Modal({ show, onClose, children, title }) {
+  const handleClose = (e) => {
+    e.preventDefault();
+    onClose();
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className={styles.overlay}>
+      <div className={styles.modal}>
+        <div className={styles.header}>
+          <a href="#" onClick={handleClose}>
+            <FaTimes />
+          </a>
+        </div>
+
+        {!!title && <h3>{title}</h3>}
+
+        <div className={styles.body}>{children}</div>
+      </div>
+    </div>
+  );
+}
+```
+
+```css
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+```
+
+We can now use the modal component in our `events/edit/[id]` file.
+
+```javascript
+<Modal show={showModal} onClose={() => setShowModal(false)}>
+  <ImageUpload evtId={evt.id} imageUploaded={imageUploaded} />
+</Modal>
+```
+
+The ImageUpload component would look like the following:
+
+```javascript
+function ImageUpload({ evtId, imageUploaded }) {
+  const [image, setImage] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append("files", image);
+    formData.append("ref", "api::event.event"); // name of the model which the image we are uploading will be linked to
+    formData.append("refId", evtId); // indicates the specific event which the image will be linked to
+    formData.append("field", "image");
+
+    const res = await fetch(`${API_URL}/api/upload`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (res.ok) {
+      imageUploaded();
+    }
+  };
+
+  const handleFileChange = (e) => {
+    setImage(e.target.files[0]);
+  };
+
+  return (
+    <div className={styles.form}>
+      <h1>Upload Event Image</h1>
+      <form onSubmit={handleSubmit}>
+        <div className={styles.file}>
+          <input type="file" onChange={handleFileChange} />
+        </div>
+        <input type="submit" value="Upload" className="btn" />
+      </form>
+    </div>
+  );
+}
+```
+
+And in the [id].js component, we use the following ImageUploaded callback function which sets the thumbnail from the uploaded image.
+
+```javascript
+const imageUploaded = async (e) => {
+  const res = await fetch(`${API_URL}/api/events/${evt.id}?populate=*`);
+  const json = await res.json();
+  const data = json.data;
+  // console.log("Image Uploaded. Response Data:", data);
+  setImagePreview(data.attributes.image.data.attributes.formats.thumbnail.url);
+  setShowModal(false);
+};
 ```

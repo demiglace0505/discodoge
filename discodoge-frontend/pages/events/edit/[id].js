@@ -1,15 +1,20 @@
 import React, { useState } from "react";
 import { useRouter } from "next/router";
+import Image from "next/image";
 import Link from "next/link";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import moment from "moment";
+import { FaImage } from "react-icons/fa";
 
+import Modal from "@/components/Modal";
 import Layout from "@/components/Layout";
 import { API_URL } from "@/config/index";
 import styles from "@/styles/Form.module.css";
+import ImageUpload from "@/components/ImageUpload";
 
 function EditEventPage({ evt }) {
+  console.log(evt);
   const attributes = evt.attributes;
   const [values, setValues] = useState({
     name: attributes.name,
@@ -20,6 +25,12 @@ function EditEventPage({ evt }) {
     time: attributes.time,
     description: attributes.description,
   });
+  const [imagePreview, setImagePreview] = useState(
+    attributes.image.data
+      ? attributes.image.data.attributes.formats.thumbnail.url
+      : null
+  );
+  const [showModal, setShowModal] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e) => {
@@ -53,6 +64,17 @@ function EditEventPage({ evt }) {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setValues({ ...values, [name]: value });
+  };
+
+  const imageUploaded = async (e) => {
+    const res = await fetch(`${API_URL}/api/events/${evt.id}?populate=*`);
+    const json = await res.json();
+    const data = json.data;
+    // console.log("Image Uploaded. Response Data:", data);
+    setImagePreview(
+      data.attributes.image.data.attributes.formats.thumbnail.url
+    );
+    setShowModal(false);
   };
 
   return (
@@ -138,12 +160,31 @@ function EditEventPage({ evt }) {
 
         <input type="submit" value="Edit Event" className="btn" />
       </form>
+
+      <h2>Event Image</h2>
+      {imagePreview ? (
+        <Image src={imagePreview} height={100} width={170} />
+      ) : (
+        <div>
+          <p>No image uploaded</p>
+        </div>
+      )}
+
+      <div>
+        <button className="btn-secondary" onClick={() => setShowModal(true)}>
+          <FaImage /> Set image
+        </button>
+      </div>
+
+      <Modal show={showModal} onClose={() => setShowModal(false)}>
+        <ImageUpload evtId={evt.id} imageUploaded={imageUploaded} />
+      </Modal>
     </Layout>
   );
 }
 
 export async function getServerSideProps({ params: { id } }) {
-  const res = await fetch(`${API_URL}/api/events/${id}`);
+  const res = await fetch(`${API_URL}/api/events/${id}?populate=*`);
   const json = await res.json();
   const evt = json.data;
 
