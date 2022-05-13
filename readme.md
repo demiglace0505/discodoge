@@ -837,3 +837,82 @@ const imageUploaded = async (e) => {
   setShowModal(false);
 };
 ```
+
+## Pagination
+
+To add pagination to the events page, we can use the [Strapi Pagination api](https://docs.strapi.io/developer-docs/latest/developer-resources/database-apis-reference/rest/sort-pagination.html#pagination). We will need to return the page number, and the total events in addition to the events data.
+
+```javascript
+// config/index.js
+export const PER_PAGE = 4;
+```
+
+```javascript
+export async function getServerSideProps({ query: { page = 1 } }) {
+  // calculate starting page
+  const start = +page === 1 ? 0 : (+page - 1) * PER_PAGE;
+
+  // fetch total/count of events
+  const totalRes = await fetch(
+    `${API_URL}/api/events?pagination[withCount]=true`
+  );
+  const totalResJson = await totalRes.json();
+  const total = totalResJson.meta.pagination.total;
+
+  // fetch events with limit defined by PER_PAGE
+  const eventRes = await fetch(
+    `${API_URL}/api/events?pagination[page]=${page}&pagination[pageSize]=${PER_PAGE}&populate=*`
+  );
+  const eventResJson = await eventRes.json();
+  const events = eventResJson.data;
+
+  return {
+    props: { events, page: +page, total },
+  };
+}
+```
+
+The total and page props will be used for adding the pagination button links in our events page. We can create a new Pagination.js component wherein we pass the page and total props
+
+```javascript
+function EventsPage({ events, page, total }) {
+  return (
+    <Layout>
+      <h1>Events</h1>
+      {events.length === 0 && <h3>No events to show</h3>}
+
+      {events.map((evt) => (
+        <EventItem key={evt.id} evt={evt} />
+      ))}
+
+      <Pagination page={page} total={total} />
+    </Layout>
+  );
+}
+```
+
+```javascript
+function Pagination({ page, total }) {
+  const lastPage = Math.ceil(total / PER_PAGE);
+
+  return (
+    <div>
+      {/* Button to Previous Page */}
+      {page > 1 && (
+        <Link href={`/events?page=${page - 1}`}>
+          <a className="btn-secondary">Prev</a>
+        </Link>
+      )}
+
+      {/* Button to Next Page */}
+      {page < lastPage && (
+        <Link href={`/events?page=${page + 1}`}>
+          <a className="btn-secondary" style={{ float: "right" }}>
+            Next
+          </a>
+        </Link>
+      )}
+    </div>
+  );
+}
+```
