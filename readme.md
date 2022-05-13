@@ -254,12 +254,24 @@ We then update the logic for fetching data
 
 ```javascript
 export async function getStaticProps() {
-  const res = await fetch(
-    `${API_URL}/api/events?populate=*&_sort=date:ASC&_limit=3`
+  const qs = require("qs");
+  const query = qs.stringify(
+    {
+      populate: "*",
+      sort: ["date:asc"],
+      pagination: {
+        start: 0,
+        limit: 3,
+      },
+    },
+    {
+      encodeValuesOnly: true,
+    }
   );
+
+  const res = await fetch(`${API_URL}/api/events?${query}`);
   const json = await res.json();
   const events = json.data;
-  // console.log("events fetched", events.data); // will run serverside
 
   return {
     props: { events },
