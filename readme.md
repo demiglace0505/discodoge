@@ -1038,3 +1038,75 @@ function RegisterPage() {
     register({ username, email, password });
   };
 ```
+
+### JWT
+
+Strapi has JWT token authentication built in wherein we send the username password and Strapi gives us a token that we use for requests. We will not be using client side cookies since it is not the safest, instead we will be using api routes within strapi. These routes can be accessed to make requests to Strapi, get the token, and set a serverside cookie using HttpOnly.
+
+To login to strapi, we send a request to `/auth/local` endpoint. Strapi returns a jwt token along the user data.
+
+### Logging in and Getting JWT
+
+We start by creating an api route to connect to, and from there communicate with Strapi to get the token. This will allow us to use HttpOnly cookies later on.
+
+```javascript
+export default async (req, res) => {
+  if (req.method === "POST") {
+    // login logic here
+    const strapiRes = await fetch(`${API_URL}/api/auth/local`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: req.body,
+    });
+
+    const data = await strapiRes.json();
+    console.log("next login data", data);
+    console.log("JWT:", data.jwt);
+
+    if (data.data !== null) {
+      // @todo set cookie
+      res.status(200).json({ user: data.user });
+    } else {
+      res.status(data.error.status).json({ error: data.error.message });
+    }
+  } else {
+    res.setHeader("Allow", ["POST"]);
+    res.status(405).json({ message: `Method ${req.method} not allowed` });
+  }
+};
+```
+
+We can then update the login() method in our AuthContext:
+
+```javascript
+const login = async ({ email: identifier, password }) => {
+  const res = await fetch(`${NEXT_URL}/api/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "json/application",
+    },
+    body: JSON.stringify({ identifier, password }),
+  });
+
+  const data = await res.json();
+  console.log("Auth Context Login", data);
+
+  if (res.ok) {
+    setUser(data.user);
+  } else {
+    setError(data.error);
+  }
+};
+```
+
+At this point, to register a new user, we can make a POST request to the endpoint `http://localhost:1337/api/auth/local/register` and send in a json in the body.
+
+```json
+{
+  "username": "testdoge",
+  "email": "testdoge@doge.com",
+  "password": "testdoge"
+}
+```
