@@ -13,6 +13,13 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const { login, error } = useContext(AuthContext);
 
+  useEffect(() => {
+    if (error) {
+      console.log("ERROR:", error);
+      toast.error(error);
+    }
+  }, [error]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     login({ email, password });
