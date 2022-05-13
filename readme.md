@@ -916,3 +916,125 @@ function Pagination({ page, total }) {
   );
 }
 ```
+
+## Authentication
+
+### Setting up Context
+
+Using Context, we can manage the functions for logging in, registering etc. We start with creating an `auth/AuthContext.js` component using createContext api. We will need to create a context provider which will wrap our app to provide the context.
+
+```javascript
+const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [error, setError] = useState(null);
+
+  // register user
+  const register = async (user) => {
+    console.log(user);
+  };
+
+  // login user
+  const login = async ({ email: identifier, password }) => {
+    console.log(identifier, password);
+  };
+
+  // logout user
+  const logout = async () => {
+    console.log("logout");
+  };
+
+  // check if user is logged in (persist)
+  const checkUserLoggedIn = async () => {
+    console.log("check user");
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, error, login, register, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export default AuthContext;
+```
+
+We will then bring in the context to our \_app.js.
+
+```javascript
+function MyApp({ Component, pageProps }) {
+  return (
+    <AuthProvider>
+      <Component {...pageProps} />;
+    </AuthProvider>
+  );
+}
+```
+
+We can then use the context in various component of our app using the useContext react hook.
+
+```javascript
+function Header() {
+  const { user, logout } = useContext(AuthContext);
+
+  return (
+    <div>
+      {user ? (
+        // if logged in
+        <div>
+          <li>
+            <Link href="/events/add">
+              <a>Add Event</a>
+            </Link>
+          </li>
+        </div>
+      ) : (
+        // if logged out
+        <>
+          <li>
+            <Link href="/account/login">
+              <a className="btn-secondary btn-icon">
+                <FaSignInAlt /> Login
+              </a>
+            </Link>
+          </li>
+        </>
+      )}
+    </div>
+  );
+}
+```
+
+```javascript
+function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const { login, error } = useContext(AuthContext);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    login({ email, password });
+  };
+```
+
+```javascript
+function RegisterPage() {
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+
+  const { register, error } = useContext(AuthContext);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (password !== passwordConfirm) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    register({ username, email, password });
+  };
+```
