@@ -1391,3 +1391,34 @@ module.exports = createCoreController("api::event.event", ({ strapi }) => ({
 ```
 
 Afterwards, we can go to the admin dashboard and under Settings -> User Permissions Plugin -> Roles -> Authenticated, under **Event** we can find the new **me** action which we will enable. We can then make a GET request to `/api/events/me`, provided that we send in the user Authorization token.
+
+### Getting User Events for the Dashboard
+
+For parsing cookies, we created a helper function under `/helpers/index.js`
+
+```javascript
+export function parseCookies(req) {
+  return cookie.parse(req ? req.headers.cookie || "" : "");
+}
+```
+
+We then make a getServerSideProps query to retrieve the current logged in user's events
+
+```javascript
+export async function getServerSideProps({ req }) {
+  const { token } = parseCookies(req);
+  // get current logged in user's events
+  const res = await fetch(`${API_URL}/api/events/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  const events = await res.json();
+
+  return {
+    props: {
+      events,
+    },
+  };
+}
+```
