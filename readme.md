@@ -1212,3 +1212,45 @@ const checkUserLoggedIn = async () => {
   }
 };
 ```
+
+### Logout and Destroying Cookies
+
+For logout, we will be creating another api route `/api/logout.js` because we need to destroy the httpOnly cookie serverside.
+
+```javascript
+export default async (req, res) => {
+  if (req.method === "POST") {
+    // destroy cookie
+    res.setHeader(
+      "Set-Cookie",
+      cookie.serialize("token", "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== "development",
+        expires: new Date(0),
+        sameSite: "strict",
+        path: "/",
+      })
+    );
+
+    res.status(200).json({ message: "Cookie Destroyed" });
+  } else {
+    res.setHeader("Allow", ["POST"]);
+    res.status(405).json({ message: `Method ${req.method} not allowed` });
+  }
+};
+```
+
+And in our AuthContext, we can implement the logout method.
+
+```javascript
+const logout = async () => {
+  const res = await fetch(`${NEXT_URL}/api/logout`, {
+    method: "POST",
+  });
+
+  if (res.ok) {
+    setUser(null);
+    router.push("/");
+  }
+};
+```
