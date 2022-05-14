@@ -1122,3 +1122,43 @@ At this point, to register a new user, we can make a POST request to the endpoin
   "password": "testdoge"
 }
 ```
+
+### Storing JWT in HttpOnly Cookie
+
+To set cookies, we will be using the package cookie. We will be doing it serverside from our `/api/login.js` using **cookie.serialize()** wherein we name our cookie as _token_ and set it as the jwt returned. The options object will have a _secure_ flag which will be https when in production, and http when in development.
+
+```javascript
+if (data.data !== null) {
+  // set cookie
+  res.setHeader(
+    "Set-Cookie",
+    cookie.serialize("token", data.jwt, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV !== "development",
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+      sameSite: "strict",
+      path: "/",
+    })
+  );
+
+  res.status(200).json({ user: data.user });
+}
+```
+
+We can access the cookie in our getServerSideProps through the **req** object. This cookie is not accessible in the client side and is only available server side, but we can pass it as a prop to the page.
+
+```javascript
+export async function getServerSideProps({ params: { id }, req }) {
+  const res = await fetch(`${API_URL}/api/events/${id}?populate=*`);
+  const json = await res.json();
+  const evt = json.data;
+
+  console.log(req.headers.cookie);
+
+  return {
+    props: {
+      evt,
+    },
+  };
+}
+```
