@@ -931,6 +931,8 @@ function Pagination({ page, total }) {
 
 ## Authentication
 
+Having api routes and being able to set HttpOnly cookies is a big benefit with Nextjs. With plain react, where to store json web tokens is an issue.
+
 ### Setting up Context
 
 Using Context, we can manage the functions for logging in, registering etc. We start with creating an `auth/AuthContext.js` component using createContext api. We will need to create a context provider which will wrap our app to provide the context.
@@ -1251,6 +1253,72 @@ const logout = async () => {
   if (res.ok) {
     setUser(null);
     router.push("/");
+  }
+};
+```
+
+### Registration
+
+We will create another api endpoint at `/api/register.js`. The code will be very similar to the login api.
+
+```javascript
+export default async (req, res) => {
+  if (req.method === "POST") {
+    const strapiRes = await fetch(`${API_URL}/api/auth/local/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: req.body,
+    });
+
+    const data = await strapiRes.json();
+
+    if (data.data !== null) {
+      // set cookie
+      res.setHeader(
+        "Set-Cookie",
+        cookie.serialize("token", data.jwt, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV !== "development",
+          maxAge: 60 * 60 * 24 * 7, // 1 week
+          sameSite: "strict",
+          path: "/",
+        })
+      );
+
+      res.status(200).json({ user: data.user });
+    } else {
+      res.status(data.error.status).json({ error: data.error.details });
+    }
+  } else {
+    res.setHeader("Allow", ["POST"]);
+    res.status(405).json({ message: `Method ${req.method} not allowed` });
+  }
+};
+```
+
+And in AuthContext
+
+```javascript
+const register = async ({ email, username, password }) => {
+  const res = await fetch(`${NEXT_URL}/api/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "json/application",
+    },
+    body: JSON.stringify({ email, username, password }),
+  });
+
+  const data = await res.json();
+  // console.log("AuthContext register", res, data);
+
+  if (res.ok) {
+    setUser(data.user);
+    router.push("/account/dashboard");
+  } else {
+    setError(data.error);
+    setError(null);
   }
 };
 ```

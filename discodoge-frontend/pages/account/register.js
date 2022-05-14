@@ -16,9 +16,16 @@ function RegisterPage() {
 
   const { register, error } = useContext(AuthContext);
 
+  useEffect(() => {
+    if (error) {
+      console.log("ERROR:", error);
+      toast.error(error);
+    }
+  }, [error]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
-
+    // console.log("Submit Registration:", username, email, password);
     if (password !== passwordConfirm) {
       toast.error("Passwords do not match");
       return;
@@ -72,7 +79,7 @@ function RegisterPage() {
             />
           </div>
 
-          <input type="submit" value="login" className="btn" />
+          <input type="submit" value="Register" className="btn" />
         </form>
 
         <p>

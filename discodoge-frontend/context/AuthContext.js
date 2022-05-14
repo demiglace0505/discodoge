@@ -11,8 +11,25 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => checkUserLoggedIn(), []);
 
   // register user
-  const register = async (user) => {
-    console.log(user);
+  const register = async ({ email, username, password }) => {
+    const res = await fetch(`${NEXT_URL}/api/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "json/application",
+      },
+      body: JSON.stringify({ email, username, password }),
+    });
+
+    const data = await res.json();
+    // console.log("AuthContext register", res, data);
+
+    if (res.ok) {
+      setUser(data.user);
+      router.push("/account/dashboard");
+    } else {
+      setError(data.error);
+      setError(null);
+    }
   };
 
   // login user
