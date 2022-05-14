@@ -1322,3 +1322,72 @@ const register = async ({ email, username, password }) => {
   }
 };
 ```
+
+## Authorization and Access
+
+### Custom User Events Endpoint
+
+> reference: [https://docs.strapi.io/developer-docs/latest/development/backend-customization/controllers.html#adding-a-new-controller](https://docs.strapi.io/developer-docs/latest/development/backend-customization/controllers.html#adding-a-new-controller)
+
+We created a Strapi endpoint where we can get the currently logged in User's events. In the backend, we create a new file for `src/api/event/routes/custom-event.js`. The following means that we will have a **me** method in the controller. This handler should be in the format of the controller's "[file name].[method name]" in this case, event and me.
+
+```javascript
+"use strict";
+
+/**
+ * custom router.
+ */
+
+module.exports = {
+  routes: [
+    {
+      method: "GET",
+      path: "/events/me",
+      handler: "event.me",
+      config: {},
+    },
+  ],
+};
+```
+
+The controller for events at `/src/api/events/controllers/event.js` was edited as well
+
+```javascript
+"use strict";
+
+/**
+ *  event controller
+ */
+
+const { createCoreController } = require("@strapi/strapi").factories;
+
+module.exports = createCoreController("api::event.event", ({ strapi }) => ({
+  // Get logged in users
+  async me(ctx) {
+    // get user from the context
+    const user = ctx.state.user;
+
+    if (!user) {
+      return ctx.badRequest(null, [
+        { message: "No authorization header was found" },
+      ]);
+    }
+
+    // resource name = event
+    const data = await strapi.db.query("api::event.event").findMany({
+      where: {
+        user: { id: user.id },
+      },
+      populate: { user: true, image: true },
+    });
+    if (!data) {
+      return ctx.notFound();
+    }
+
+    const res = await this.sanitizeOutput(data, ctx);
+    return res;
+  },
+}));
+```
+
+Afterwards, we can go to the admin dashboard and under Settings -> User Permissions Plugin -> Roles -> Authenticated, under **Event** we can find the new **me** action which we will enable. We can then make a GET request to `/api/events/me`, provided that we send in the user Authorization token.
