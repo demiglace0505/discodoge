@@ -1422,3 +1422,83 @@ export async function getServerSideProps({ req }) {
   };
 }
 ```
+
+### IsOwner Policy for Events
+
+> Reference: [https://docs.strapi.io/developer-docs/latest/development/backend-customization/policies.html](https://docs.strapi.io/developer-docs/latest/development/backend-customization/policies.html), [https://github.com/strapi/documentation/issues/600#issuecomment-1004799734](https://github.com/strapi/documentation/issues/600#issuecomment-1004799734)
+
+We need to implement an IsOwner policy to our events to prevent them from being edited/deleted by anyone else except for the creator. We also want a submitted event to be connected to the user that created it based on their json web token.
+
+To do this, we need to edit our backend controller for events. We add the following action in our `/src/api/event/controllers/event.js`
+
+```javascript
+  // Create user event
+  async create(ctx) {
+    let entity;
+    ctx.request.body.data.user = ctx.state.user;
+    entity = await strapi.service("api::event.event").create(ctx.request.body);
+    return entity;
+  },
+
+  // Update user event
+  async update(ctx) {
+    let entity;
+    const { id } = ctx.params;
+    const query = {
+      filters: {
+        id: id,
+        user: { id: ctx.state.user.id },
+      },
+    };
+    const events = await this.find({ query: query });
+    console.log(events);
+    if (!events.data || !events.data.length) {
+      return ctx.unauthorized(`You can't update this entry`);
+    }
+    entity = await super.update(ctx);
+    return entity;
+  },
+
+  // Delete a user event
+  async delete(ctx) {
+    const { id } = ctx.params;
+    const query = {
+      filters: {
+        id: id,
+        user: { id: ctx.state.user.id },
+      },
+    };
+    const events = await this.find({ query: query });
+    if (!events.data || !events.data.length) {
+      return ctx.unauthorized(`You can't delete this entry`);
+    }
+    const response = await super.delete(ctx);
+    return response;
+  },
+```
+
+In order to retrieve the token on the frontend, we can get it with getServerSideProps
+
+```javascript
+export async function getServerSideProps({ req }) {
+  const { token } = parseCookies(req);
+  return {
+    props: {
+      token,
+    },
+  };
+}
+```
+
+We then make sure to include this token in our request
+
+```javascript
+const res = await fetch(`${API_URL}/api/events`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  },
+  body: JSON.stringify({ data: values }),
+});
+```

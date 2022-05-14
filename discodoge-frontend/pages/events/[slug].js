@@ -14,25 +14,25 @@ function EventPage({ evt }) {
   const { attributes } = evt;
   const router = useRouter();
 
-  const deleteEvent = async (e) => {
-    if (confirm("Are you sure?")) {
-      const res = await fetch(`${API_URL}/api/events/${evt.id}`, {
-        method: "DELETE",
-      });
-      const data = res.json();
+  // const deleteEvent = async (e) => {
+  //   if (confirm("Are you sure?")) {
+  //     const res = await fetch(`${API_URL}/api/events/${evt.id}`, {
+  //       method: "DELETE",
+  //     });
+  //     const data = res.json();
 
-      if (!res.ok) {
-        toast.error(data.message);
-      } else {
-        router.push("/events");
-      }
-    }
-  };
+  //     if (!res.ok) {
+  //       toast.error(data.message);
+  //     } else {
+  //       router.push("/events");
+  //     }
+  //   }
+  // };
 
   return (
     <Layout>
       <div className={styles.event}>
-        <div className={styles.controls}>
+        {/* <div className={styles.controls}>
           <Link href={`/events/edit/${evt.id}`}>
             <a>
               <FaPencilAlt /> Edit Event
@@ -41,7 +41,7 @@ function EventPage({ evt }) {
           <a href="#" className={styles.delete} onClick={deleteEvent}>
             <FaTimes /> Delete Event
           </a>
-        </div>
+        </div> */}
 
         <span>
           {new Date(attributes.date).toLocaleDateString("en-US")} at{" "}
