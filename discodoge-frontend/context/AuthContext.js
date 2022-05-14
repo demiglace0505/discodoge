@@ -7,6 +7,8 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [error, setError] = useState(null);
+  const router = useRouter();
+  useEffect(() => checkUserLoggedIn(), []);
 
   // register user
   const register = async (user) => {
@@ -28,6 +30,7 @@ export const AuthProvider = ({ children }) => {
 
     if (res.ok) {
       setUser(data.user);
+      router.push("/account/dashboard");
     } else {
       setError(data.error);
       setError(null);
@@ -41,7 +44,14 @@ export const AuthProvider = ({ children }) => {
 
   // check if user is logged in (persist)
   const checkUserLoggedIn = async () => {
-    console.log("check user");
+    const res = await fetch(`${NEXT_URL}/api/user`);
+    const data = await res.json();
+
+    if (res.ok) {
+      setUser(data.user);
+    } else {
+      setUser(null);
+    }
   };
 
   return (

@@ -1162,3 +1162,53 @@ export async function getServerSideProps({ params: { id }, req }) {
   };
 }
 ```
+
+### Persisting Logged in User
+
+We start by creating a new api route `/api/user.js` which will send the token from our httpOnly cookie to the Strapi api endpoint `/api/users/me` and get back the user from that token.
+
+```javascript
+export default async (req, res) => {
+  if (req.method === "GET") {
+    if (!req.headers.cookie) {
+      res.status(403).json({ message: "Not Authorized" });
+      return;
+    }
+
+    const { token } = cookie.parse(req.headers.cookie);
+    const strapiRes = await fetch(`${API_URL}/api/users/me`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const user = await strapiRes.json();
+
+    if (strapiRes.ok) {
+      res.status(200).json({ user });
+    } else {
+      res.status(403).json({ message: "User Forbidden" });
+    }
+  } else {
+    res.setHeader("Allow", ["GET"]);
+    res.status(405).json({ message: `Method ${req.method} not allowed` });
+  }
+};
+```
+
+We can now hit this endpoint with our AuthContext using an effect hook
+
+```javascript
+useEffect(() => checkUserLoggedIn(), []);
+
+const checkUserLoggedIn = async () => {
+  const res = await fetch(`${NEXT_URL}/api/user`);
+  const data = await res.json();
+
+  if (res.ok) {
+    setUser(data.user);
+  } else {
+    setUser(null);
+  }
+};
+```
