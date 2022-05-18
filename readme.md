@@ -1502,3 +1502,7 @@ const res = await fetch(`${API_URL}/api/events`, {
   body: JSON.stringify({ data: values }),
 });
 ```
+
+## Map Functionality - to do
+
+For the mapping, we use Mapbox and Google Maps api for geocoding together with react-geocode package, mapbox-gl and react-map-gl.
