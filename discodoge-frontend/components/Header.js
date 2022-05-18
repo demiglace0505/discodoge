@@ -13,7 +13,7 @@ function Header() {
     <header className={styles.header}>
       <div className={styles.logo}>
         <Link href="/">
-          <a>DJ Events</a>
+          <a>Disco Doge</a>
         </Link>
       </div>
 

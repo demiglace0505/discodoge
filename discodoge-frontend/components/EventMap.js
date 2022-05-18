@@ -33,7 +33,7 @@ function EventMap({ evt }) {
         initialViewState={{
           longitude: lng,
           latitude: lat,
-          zoom: 7,
+          zoom: 14,
         }}
         style={{ width: 600, height: 400 }}
         mapStyle="mapbox://styles/mapbox/streets-v11"
