@@ -14,7 +14,7 @@ function EventMap({ evt }) {
     Geocode.fromAddress(evt.address).then(
       (response) => {
         const { lat, lng } = response.results[0].geometry.location;
-        // console.log(lat, lng);
+        console.log("map coordinates:", lat, lng);
         setLat(lat);
         setLong(lng);
         setLoading(false);
@@ -25,19 +25,19 @@ function EventMap({ evt }) {
     );
   }, []);
 
-  if (loading) return false;
-  console.log(lat, lng);
+  if (loading) return <h4>Error: Could not load Map Data</h4>;
 
   return (
     <div>
       <Map
         initialViewState={{
-          longitude: 40.712772,
-          latitude: -73.935242,
-          zoom: 14,
+          longitude: lng,
+          latitude: lat,
+          zoom: 7,
         }}
         style={{ width: 600, height: 400 }}
-        mapStyle="mapbox://styles/mapbox/streets-v9"
+        mapStyle="mapbox://styles/mapbox/streets-v11"
+        mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_API_TOKEN}
       >
         <Marker longitude={lng} latitude={lat} color="red" />
       </Map>

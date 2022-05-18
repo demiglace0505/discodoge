@@ -1506,3 +1506,61 @@ const res = await fetch(`${API_URL}/api/events`, {
 ## Map Functionality - to do
 
 For the mapping, we use Mapbox and Google Maps api for geocoding together with react-geocode package, mapbox-gl and react-map-gl.
+
+## Deploying Backend to Heroku
+
+> Reference: [https://docs.strapi.io/developer-docs/latest/setup-deployment-guides/deployment/hosting-guides/heroku.html#heroku-install-requirements](https://docs.strapi.io/developer-docs/latest/setup-deployment-guides/deployment/hosting-guides/heroku.html#heroku-install-requirements)
+
+We will be using Heroku together with the postgres add-on for our database. After setting up git locally on our backend directory, we can run `heroku create discodoge-backend` and `heroku git:remote -a discodoge-backend`.
+
+We then install the Postgres addon for Heroku `heroku addons:create heroku-postgresql:hobby-dev --app discodoge-backend`. To setup the database configuration file, we need to install pg and pg-connection-string into our backend. We create a new file at `./config/env/production/database.js` for our product database config file and `./config/env/production/server.js` for our server config.
+
+```javascript
+const parse = require("pg-connection-string").parse;
+const config = parse(process.env.DATABASE_URL);
+
+module.exports = ({ env }) => ({
+  connection: {
+    client: "postgres",
+    connection: {
+      host: config.host,
+      port: config.port,
+      database: config.database,
+      user: config.user,
+      password: config.password,
+      ssl: {
+        rejectUnauthorized: false,
+      },
+    },
+    debug: false,
+  },
+});
+```
+
+```javascript
+module.exports = ({ env }) => ({
+  url: env("MY_HEROKU_URL"),
+  proxy: true,
+  app: {
+    keys: env.array("APP_KEYS", [
+      "DATABASE_URL",
+      "HEROKU_POSTGRESQL_MAROON_URL",
+    ]),
+  },
+});
+```
+
+Afterwards we can set NODE_ENV to production using the Heroku GUI or `heroku config:set NODE_ENV=production`, and also we need to copy existing screts from our local environment. The cloudinary keys can be set using the GUI.
+
+```sh
+heroku config:set APP_KEYS=$(cat .env | grep APP_KEYS | cut -d= -f2-)
+heroku config:set API_TOKEN_SALT=$(cat .env | grep API_TOKEN_SALT | cut -d= -f2)
+heroku config:set ADMIN_JWT_SECRET=$(cat .env | grep ADMIN_JWT_SECRET | cut -d= -f2)
+heroku config:set JWT_SECRET=$(cat .env | grep -w JWT_SECRET | cut -d= -f2)
+```
+
+To run the app, we can use `heroku open`. Our configuration will stay, but the data for the events, permissions and users have to be entered again.
+
+## Deploying Frontend to Vercel
+
+To deploy to Vercel, we just need to upload our frontend to a git repository suchc as Github. The necessary variables will be NEXT_PUBLIC_API_URL which will point to our Backend Strapi URL, NEXT_PUBLIC_FRONTEND_URL which will be `https://discodoge.vercel.app`, and the API keys for our Mapbox and Google maps API.
